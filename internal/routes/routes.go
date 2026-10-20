@@ -8,9 +8,11 @@ import (
 )
 
 type Dependencies struct {
-	HealthHandler *handler.HealthHandler
-	AuthHandler   *handler.AuthHandler
-	JWTSecret     string
+	HealthHandler   *handler.HealthHandler
+	AuthHandler     *handler.AuthHandler
+	CategoryHandler *handler.CategoryHandler
+	ProductHandler  *handler.ProductHandler
+	JWTSecret       string
 }
 
 func Register(router *gin.Engine, dependencies Dependencies) {
@@ -19,6 +21,7 @@ func Register(router *gin.Engine, dependencies Dependencies) {
 	api := router.Group("/api/v1")
 
 	registerAuthRoutes(api, dependencies)
+	registerProductRoutes(api, dependencies)
 }
 
 func registerAuthRoutes(

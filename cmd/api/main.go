@@ -55,9 +55,13 @@ func main() {
 
 	// Repository
 	userRepo := repo.NewUserRepo(db)
+	categoryRepo := repo.NewCategoryRepo(db)
+	productRepo := repo.NewProductRepo(db)
 
 	// Service
 	authService := services.NewAuthService(userRepo)
+	categoryService := services.NewCategoryService(categoryRepo)
+	productService := services.NewProductService(productRepo, categoryRepo)
 
 	// Handler
 	authHandler := handler.NewAuthHandler(
@@ -66,14 +70,18 @@ func main() {
 		appConfig.JWTExpiresHours,
 	)
 	healthHandler := handler.NewHealthHandler(db)
+	categoryHandler := handler.NewCategoryHandler(categoryService)
+	productHandler := handler.NewProductHandler(productService)
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
 	routes.Register(router, routes.Dependencies{
-		HealthHandler: healthHandler,
-		AuthHandler:   authHandler,
-		JWTSecret:     appConfig.JWTSecret,
+		HealthHandler:   healthHandler,
+		AuthHandler:     authHandler,
+		CategoryHandler: categoryHandler,
+		ProductHandler:  productHandler,
+		JWTSecret:       appConfig.JWTSecret,
 	})
 
 	server := &http.Server{
