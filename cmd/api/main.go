@@ -14,8 +14,8 @@ import (
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/config"
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/handler"
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/lib"
-	"github.com/muhammadwahyupratamaa/assessment-backend/internal/middleware"
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/repo"
+	"github.com/muhammadwahyupratamaa/assessment-backend/internal/routes"
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -65,40 +65,16 @@ func main() {
 		appConfig.JWTSecret,
 		appConfig.JWTExpiresHours,
 	)
+	healthHandler := handler.NewHealthHandler(db)
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
-	router.GET("/health", func(c *gin.Context) {
-		if err := db.Ping(c.Request.Context()); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"success": false,
-				"message": "database unavailable",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"data": gin.H{
-				"status": "ok",
-			},
-		})
+	routes.Register(router, routes.Dependencies{
+		HealthHandler: healthHandler,
+		AuthHandler:   authHandler,
+		JWTSecret:     appConfig.JWTSecret,
 	})
-
-	api := router.Group("/api/v1")
-
-	auth := api.Group("/auth")
-	{
-		auth.POST("/register", authHandler.Register)
-		auth.POST("/login", authHandler.Login)
-	}
-
-	protected := api.Group("")
-	protected.Use(middleware.AuthMiddleware(appConfig.JWTSecret))
-	{
-		protected.GET("/me", authHandler.Me)
-	}
 
 	server := &http.Server{
 		Addr:              ":" + appConfig.AppPort,
