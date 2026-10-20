@@ -12,7 +12,11 @@ import (
 	"time"
 
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/config"
+	"github.com/muhammadwahyupratamaa/assessment-backend/internal/handler"
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/lib"
+	"github.com/muhammadwahyupratamaa/assessment-backend/internal/middleware"
+	"github.com/muhammadwahyupratamaa/assessment-backend/internal/repo"
+	"github.com/muhammadwahyupratamaa/assessment-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,6 +44,28 @@ func main() {
 	}
 	defer db.Close()
 
+	if err := lib.SeedAdmin(
+		ctx,
+		db,
+		appConfig.AdminEmail,
+		appConfig.AdminPassword,
+	); err != nil {
+		log.Fatal("failed to seed admin: ", err)
+	}
+
+	// Repository
+	userRepo := repo.NewUserRepo(db)
+
+	// Service
+	authService := services.NewAuthService(userRepo)
+
+	// Handler
+	authHandler := handler.NewAuthHandler(
+		authService,
+		appConfig.JWTSecret,
+		appConfig.JWTExpiresHours,
+	)
+
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
@@ -59,6 +85,20 @@ func main() {
 			},
 		})
 	})
+
+	api := router.Group("/api/v1")
+
+	auth := api.Group("/auth")
+	{
+		auth.POST("/register", authHandler.Register)
+		auth.POST("/login", authHandler.Login)
+	}
+
+	protected := api.Group("")
+	protected.Use(middleware.AuthMiddleware(appConfig.JWTSecret))
+	{
+		protected.GET("/me", authHandler.Me)
+	}
 
 	server := &http.Server{
 		Addr:              ":" + appConfig.AppPort,

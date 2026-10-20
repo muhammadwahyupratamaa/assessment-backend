@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	assessmentbackend "github.com/muhammadwahyupratamaa/assessment-backend"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	assessmentbackend "github.com/muhammadwahyupratamaa/assessment-backend"
 )
 
 func RunMigrations(databaseURL string) error {
