@@ -12,6 +12,7 @@ type Dependencies struct {
 	AuthHandler     *handler.AuthHandler
 	CategoryHandler *handler.CategoryHandler
 	ProductHandler  *handler.ProductHandler
+	OrderHandler    *handler.OrderHandler
 	JWTSecret       string
 }
 
@@ -22,6 +23,7 @@ func Register(router *gin.Engine, dependencies Dependencies) {
 
 	registerAuthRoutes(api, dependencies)
 	registerProductRoutes(api, dependencies)
+	registerOrderRoutes(api, dependencies)
 }
 
 func registerAuthRoutes(

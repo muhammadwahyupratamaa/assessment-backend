@@ -57,11 +57,13 @@ func main() {
 	userRepo := repo.NewUserRepo(db)
 	categoryRepo := repo.NewCategoryRepo(db)
 	productRepo := repo.NewProductRepo(db)
+	orderRepo := repo.NewOrderRepo(db)
 
 	// Service
 	authService := services.NewAuthService(userRepo)
 	categoryService := services.NewCategoryService(categoryRepo)
 	productService := services.NewProductService(productRepo, categoryRepo)
+	orderService := services.NewOrderService(orderRepo)
 
 	// Handler
 	authHandler := handler.NewAuthHandler(
@@ -72,6 +74,7 @@ func main() {
 	healthHandler := handler.NewHealthHandler(db)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 	productHandler := handler.NewProductHandler(productService)
+	orderHandler := handler.NewOrderHandler(orderService)
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
@@ -81,6 +84,7 @@ func main() {
 		AuthHandler:     authHandler,
 		CategoryHandler: categoryHandler,
 		ProductHandler:  productHandler,
+		OrderHandler:    orderHandler,
 		JWTSecret:       appConfig.JWTSecret,
 	})
 
