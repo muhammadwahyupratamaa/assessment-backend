@@ -22,6 +22,23 @@ func NewOrderHandler(orderService services.OrderService) *OrderHandler {
 	}
 }
 
+// Checkout godoc
+//
+//	@Summary		Checkout an order
+//	@Description	Create an order transactionally. Stock is validated and deducted atomically.
+//	@Tags			Orders
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			Idempotency-Key	header		string					false	"Optional idempotency key to safely retry a request"
+//	@Param			request			body		models.CheckoutRequest	true	"Checkout payload"
+//	@Success		201				{object}	models.Order			"Order data is returned inside the data field"
+//	@Failure		400				{object}	map[string]interface{}
+//	@Failure		401				{object}	map[string]interface{}
+//	@Failure		404				{object}	map[string]interface{}
+//	@Failure		409				{object}	map[string]interface{}
+//	@Failure		500				{object}	map[string]interface{}
+//	@Router			/orders [post]
 func (h *OrderHandler) Checkout(c *gin.Context) {
 	authUser, ok := middleware.GetAuthUser(c)
 	if !ok {
@@ -89,6 +106,19 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 	})
 }
 
+// ListMyOrders godoc
+//
+//	@Summary	Get current user's orders
+//	@Tags		Orders
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Param		page	query		int				false	"Page number"					default(1)
+//	@Param		limit	query		int				false	"Items per page (maximum 100)"	default(10)
+//	@Success	200		{array}		models.Order	"Order data is returned inside the data field"
+//	@Failure	400		{object}	map[string]interface{}
+//	@Failure	401		{object}	map[string]interface{}
+//	@Failure	500		{object}	map[string]interface{}
+//	@Router		/orders [get]
 func (h *OrderHandler) ListMyOrders(c *gin.Context) {
 	authUser, ok := middleware.GetAuthUser(c)
 	if !ok {
@@ -128,6 +158,19 @@ func (h *OrderHandler) ListMyOrders(c *gin.Context) {
 	})
 }
 
+// GetMyOrder godoc
+//
+//	@Summary	Get current user's order detail
+//	@Tags		Orders
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Param		id	path		string			true	"Order UUID"
+//	@Success	200	{object}	models.Order	"Order data is returned inside the data field"
+//	@Failure	400	{object}	map[string]interface{}
+//	@Failure	401	{object}	map[string]interface{}
+//	@Failure	404	{object}	map[string]interface{}
+//	@Failure	500	{object}	map[string]interface{}
+//	@Router		/orders/{id} [get]
 func (h *OrderHandler) GetMyOrder(c *gin.Context) {
 	authUser, ok := middleware.GetAuthUser(c)
 	if !ok {
@@ -174,6 +217,21 @@ func (h *OrderHandler) GetMyOrder(c *gin.Context) {
 	})
 }
 
+// ListAllOrders godoc
+//
+//	@Summary		Get all orders
+//	@Description	Admin-only endpoint to view all customer orders.
+//	@Tags			Admin Orders
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			page	query		int				false	"Page number"					default(1)
+//	@Param			limit	query		int				false	"Items per page (maximum 100)"	default(10)
+//	@Success		200		{array}		models.Order	"Order data is returned inside the data field"
+//	@Failure		400		{object}	map[string]interface{}
+//	@Failure		401		{object}	map[string]interface{}
+//	@Failure		403		{object}	map[string]interface{}
+//	@Failure		500		{object}	map[string]interface{}
+//	@Router			/admin/orders [get]
 func (h *OrderHandler) ListAllOrders(c *gin.Context) {
 	params, err := buildOrderListParams(c)
 	if err != nil {

@@ -30,6 +30,19 @@ func NewAuthHandler(
 	}
 }
 
+// Register godoc
+//
+//	@Summary		Register a customer account
+//	@Description	Create a new customer account. Password must contain uppercase, lowercase, number, and special character.
+//	@Tags			Authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		models.RegisterRequest	true	"Registration payload"
+//	@Success		201		{object}	models.UserResponse		"User data is returned inside the data field"
+//	@Failure		400		{object}	map[string]interface{}
+//	@Failure		409		{object}	map[string]interface{}
+//	@Failure		500		{object}	map[string]interface{}
+//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var request models.RegisterRequest
 
@@ -72,6 +85,19 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	})
 }
 
+// Login godoc
+//
+//	@Summary		Login
+//	@Description	Authenticate with email and password, then receive a JWT access token.
+//	@Tags			Authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		models.LoginRequest	true	"Login payload"
+//	@Success		200		{object}	map[string]interface{}
+//	@Failure		400		{object}	map[string]interface{}
+//	@Failure		401		{object}	map[string]interface{}
+//	@Failure		500		{object}	map[string]interface{}
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var request models.LoginRequest
 
@@ -123,6 +149,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
+// Me godoc
+//
+//	@Summary	Get current user profile
+//	@Tags		Authentication
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Success	200	{object}	models.UserResponse	"User data is returned inside the data field"
+//	@Failure	401	{object}	map[string]interface{}
+//	@Router		/me [get]
 func (h *AuthHandler) Me(c *gin.Context) {
 	authUser, ok := middleware.GetAuthUser(c)
 	if !ok {

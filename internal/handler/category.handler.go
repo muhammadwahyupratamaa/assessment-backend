@@ -22,6 +22,14 @@ func NewCategoryHandler(
 	}
 }
 
+// GetAll godoc
+//
+//	@Summary	Get all categories
+//	@Tags		Categories
+//	@Produce	json
+//	@Success	200	{array}		models.Category	"Category data is returned inside the data field"
+//	@Failure	500	{object}	map[string]interface{}
+//	@Router		/categories [get]
 func (h *CategoryHandler) GetAll(c *gin.Context) {
 	categories, err := h.categoryService.GetAll(c.Request.Context())
 	if err != nil {
@@ -38,6 +46,21 @@ func (h *CategoryHandler) GetAll(c *gin.Context) {
 	})
 }
 
+// Create godoc
+//
+//	@Summary	Create a category
+//	@Tags		Categories
+//	@Accept		json
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Param		request	body		models.CreateCategoryRequest	true	"Category payload"
+//	@Success	201		{object}	models.Category					"Category data is returned inside the data field"
+//	@Failure	400		{object}	map[string]interface{}
+//	@Failure	401		{object}	map[string]interface{}
+//	@Failure	403		{object}	map[string]interface{}
+//	@Failure	409		{object}	map[string]interface{}
+//	@Failure	500		{object}	map[string]interface{}
+//	@Router		/categories [post]
 func (h *CategoryHandler) Create(c *gin.Context) {
 	var request models.CreateCategoryRequest
 

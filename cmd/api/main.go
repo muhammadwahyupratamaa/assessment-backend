@@ -18,9 +18,21 @@ import (
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/routes"
 	"github.com/muhammadwahyupratamaa/assessment-backend/internal/services"
 
+	_ "github.com/muhammadwahyupratamaa/assessment-backend/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
 	"github.com/gin-gonic/gin"
 )
 
+// @title						Assessment Backend API
+// @version					1.0
+// @description				REST API for a mini e-commerce application.
+// @BasePath					/api/v1
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Type "Bearer" followed by a space and a JWT token.
 func main() {
 	appConfig, err := config.Load()
 	if err != nil {
@@ -78,6 +90,11 @@ func main() {
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
+
+	router.GET(
+		"/swagger/*any",
+		ginSwagger.WrapHandler(swaggerFiles.Handler),
+	)
 
 	routes.Register(router, routes.Dependencies{
 		HealthHandler:   healthHandler,

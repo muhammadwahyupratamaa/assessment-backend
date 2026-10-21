@@ -24,6 +24,24 @@ func NewProductHandler(
 	}
 }
 
+// List godoc
+//
+//	@Summary		Get products
+//	@Description	Public product listing with pagination, filters, and sorting.
+//	@Tags			Products
+//	@Produce		json
+//	@Param			page		query		int				false	"Page number"					default(1)
+//	@Param			limit		query		int				false	"Items per page (maximum 100)"	default(10)
+//	@Param			category_id	query		string			false	"Category UUID"
+//	@Param			min_price	query		int				false	"Minimum price"
+//	@Param			max_price	query		int				false	"Maximum price"
+//	@Param			in_stock	query		bool			false	"Only products with stock"
+//	@Param			sort		query		string			false	"Sort field"	Enums(price,created_at)	default(created_at)
+//	@Param			order		query		string			false	"Sort order"	Enums(asc,desc)			default(desc)
+//	@Success		200			{array}		models.Product	"Product data is returned inside the data field"
+//	@Failure		400			{object}	map[string]interface{}
+//	@Failure		500			{object}	map[string]interface{}
+//	@Router			/products [get]
 func (h *ProductHandler) List(c *gin.Context) {
 	params, err := buildProductListParams(c)
 	if err != nil {
@@ -61,6 +79,17 @@ func (h *ProductHandler) List(c *gin.Context) {
 	})
 }
 
+// GetByID godoc
+//
+//	@Summary	Get product detail
+//	@Tags		Products
+//	@Produce	json
+//	@Param		id	path		string			true	"Product UUID"
+//	@Success	200	{object}	models.Product	"Product data is returned inside the data field"
+//	@Failure	400	{object}	map[string]interface{}
+//	@Failure	404	{object}	map[string]interface{}
+//	@Failure	500	{object}	map[string]interface{}
+//	@Router		/products/{id} [get]
 func (h *ProductHandler) GetByID(c *gin.Context) {
 	productID := c.Param("id")
 
@@ -98,6 +127,21 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 	})
 }
 
+// Create godoc
+//
+//	@Summary	Create a product
+//	@Tags		Products
+//	@Accept		json
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Param		request	body		models.CreateProductRequest	true	"Product payload"
+//	@Success	201		{object}	models.Product				"Product data is returned inside the data field"
+//	@Failure	400		{object}	map[string]interface{}
+//	@Failure	401		{object}	map[string]interface{}
+//	@Failure	403		{object}	map[string]interface{}
+//	@Failure	404		{object}	map[string]interface{}
+//	@Failure	500		{object}	map[string]interface{}
+//	@Router		/products [post]
 func (h *ProductHandler) Create(c *gin.Context) {
 	var request models.CreateProductRequest
 
@@ -132,6 +176,22 @@ func (h *ProductHandler) Create(c *gin.Context) {
 	})
 }
 
+// Update godoc
+//
+//	@Summary	Update a product
+//	@Tags		Products
+//	@Accept		json
+//	@Produce	json
+//	@Security	BearerAuth
+//	@Param		id		path		string						true	"Product UUID"
+//	@Param		request	body		models.UpdateProductRequest	true	"Product update payload"
+//	@Success	200		{object}	models.Product				"Product data is returned inside the data field"
+//	@Failure	400		{object}	map[string]interface{}
+//	@Failure	401		{object}	map[string]interface{}
+//	@Failure	403		{object}	map[string]interface{}
+//	@Failure	404		{object}	map[string]interface{}
+//	@Failure	500		{object}	map[string]interface{}
+//	@Router		/products/{id} [put]
 func (h *ProductHandler) Update(c *gin.Context) {
 	productID := c.Param("id")
 
@@ -190,6 +250,21 @@ func (h *ProductHandler) Update(c *gin.Context) {
 	})
 }
 
+// Delete godoc
+//
+//	@Summary		Delete a product
+//	@Description	Soft-delete a product. Admin access is required.
+//	@Tags			Products
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path	string	true	"Product UUID"
+//	@Success		204	"Product deleted"
+//	@Failure		400	{object}	map[string]interface{}
+//	@Failure		401	{object}	map[string]interface{}
+//	@Failure		403	{object}	map[string]interface{}
+//	@Failure		404	{object}	map[string]interface{}
+//	@Failure		500	{object}	map[string]interface{}
+//	@Router			/products/{id} [delete]
 func (h *ProductHandler) Delete(c *gin.Context) {
 	productID := c.Param("id")
 
