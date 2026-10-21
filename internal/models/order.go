@@ -5,7 +5,9 @@ import "time"
 type OrderStatus string
 
 const (
-	OrderStatusPending OrderStatus = "PENDING"
+	OrderStatusPending   OrderStatus = "PENDING"
+	OrderStatusCompleted OrderStatus = "COMPLETED"
+	OrderStatusCancelled OrderStatus = "CANCELLED"
 )
 
 type Order struct {
@@ -34,6 +36,10 @@ type CheckoutRequest struct {
 type CheckoutItemRequest struct {
 	ProductID string `json:"product_id" binding:"required,uuid"`
 	Quantity  int    `json:"quantity" binding:"required,gte=1,lte=100"`
+}
+
+type UpdateOrderStatusRequest struct {
+	Status OrderStatus `json:"status" binding:"required,oneof=PENDING COMPLETED CANCELLED"`
 }
 
 type OrderListParams struct {

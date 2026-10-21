@@ -13,9 +13,12 @@ import (
 )
 
 var (
-	ErrOrderProductNotFound = errors.New("order product not found")
-	ErrInsufficientStock    = errors.New("insufficient product stock")
-	ErrInvalidCheckoutItem  = errors.New("invalid checkout item")
+	ErrOrderProductNotFound    = errors.New("order product not found")
+	ErrInsufficientStock       = errors.New("insufficient product stock")
+	ErrInvalidCheckoutItem     = errors.New("invalid checkout item")
+	ErrOrderNotFound           = errors.New("order not found")
+	ErrInvalidOrderStatus      = errors.New("invalid order status")
+	ErrInvalidStatusTransition = errors.New("invalid order status transition")
 )
 
 type OrderRepo interface {
@@ -35,6 +38,11 @@ type OrderRepo interface {
 		ctx context.Context,
 		params models.OrderListParams,
 	) ([]models.Order, int64, error)
+	UpdateStatus(
+		ctx context.Context,
+		orderID string,
+		status models.OrderStatus,
+	) (models.Order, error)
 }
 
 type orderRepo struct {
@@ -77,7 +85,6 @@ func (r *orderRepo) Checkout(
 		productIDs = append(productIDs, productID)
 	}
 
-	// Urutan lock konsisten agar mengurangi risiko deadlock.
 	sort.Strings(productIDs)
 
 	if idempotencyKey != "" {
@@ -327,6 +334,114 @@ func (r *orderRepo) ListAll(
 	}
 
 	return orders, total, nil
+}
+
+func (r *orderRepo) UpdateStatus(
+	ctx context.Context,
+	orderID string,
+	status models.OrderStatus,
+) (models.Order, error) {
+	if status != models.OrderStatusPending &&
+		status != models.OrderStatusCompleted &&
+		status != models.OrderStatusCancelled {
+		return models.Order{}, ErrInvalidOrderStatus
+	}
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return models.Order{}, err
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	var currentStatus string
+
+	err = tx.QueryRow(
+		ctx,
+		`SELECT status
+		FROM orders
+		WHERE id = $1
+		FOR UPDATE`,
+		orderID,
+	).Scan(&currentStatus)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Order{}, ErrOrderNotFound
+	}
+	if err != nil {
+		return models.Order{}, err
+	}
+
+	currentOrderStatus := models.OrderStatus(currentStatus)
+
+	if currentOrderStatus == status {
+		if err := tx.Commit(ctx); err != nil {
+			return models.Order{}, err
+		}
+
+		return r.GetByID(ctx, orderID)
+	}
+
+	if currentOrderStatus != models.OrderStatusPending {
+		return models.Order{}, ErrInvalidStatusTransition
+	}
+
+	if status == models.OrderStatusCancelled {
+		rows, err := tx.Query(
+			ctx,
+			`SELECT product_id, quantity
+			FROM order_items
+			WHERE order_id = $1`,
+			orderID,
+		)
+		if err != nil {
+			return models.Order{}, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var productID string
+			var quantity int
+
+			if err := rows.Scan(&productID, &quantity); err != nil {
+				return models.Order{}, err
+			}
+
+			_, err := tx.Exec(
+				ctx,
+				`UPDATE products
+				SET stock = stock + $1, updated_at = now()
+				WHERE id = $2`,
+				quantity,
+				productID,
+			)
+			if err != nil {
+				return models.Order{}, err
+			}
+		}
+
+		if err := rows.Err(); err != nil {
+			return models.Order{}, err
+		}
+	}
+
+	_, err = tx.Exec(
+		ctx,
+		`UPDATE orders
+		SET status = $1
+		WHERE id = $2`,
+		status,
+		orderID,
+	)
+	if err != nil {
+		return models.Order{}, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return models.Order{}, err
+	}
+
+	return r.GetByID(ctx, orderID)
 }
 
 func (r *orderRepo) scanOrderList(

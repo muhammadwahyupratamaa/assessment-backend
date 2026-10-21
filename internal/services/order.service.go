@@ -11,10 +11,12 @@ import (
 )
 
 var (
-	ErrOrderNotFound          = errors.New("order not found")
-	ErrOrderProductNotFound   = errors.New("order product not found")
-	ErrOrderInsufficientStock = errors.New("insufficient product stock")
-	ErrInvalidCheckoutItem    = errors.New("invalid checkout item")
+	ErrOrderNotFound           = errors.New("order not found")
+	ErrOrderProductNotFound    = errors.New("order product not found")
+	ErrOrderInsufficientStock  = errors.New("insufficient product stock")
+	ErrInvalidCheckoutItem     = errors.New("invalid checkout item")
+	ErrInvalidOrderStatus      = errors.New("invalid order status")
+	ErrInvalidStatusTransition = errors.New("invalid order status transition")
 )
 
 type OrderService interface {
@@ -23,6 +25,11 @@ type OrderService interface {
 		userID string,
 		idempotencyKey string,
 		request models.CheckoutRequest,
+	) (models.Order, error)
+	UpdateStatus(
+		ctx context.Context,
+		orderID string,
+		request models.UpdateOrderStatusRequest,
 	) (models.Order, error)
 	GetMyOrder(
 		ctx context.Context,
@@ -78,6 +85,32 @@ func (s *orderService) Checkout(
 	}
 }
 
+func (s *orderService) UpdateStatus(
+	ctx context.Context,
+	orderID string,
+	request models.UpdateOrderStatusRequest,
+) (models.Order, error) {
+	order, err := s.orderRepo.UpdateStatus(
+		ctx,
+		orderID,
+		request.Status,
+	)
+	if err == nil {
+		return order, nil
+	}
+
+	switch {
+	case errors.Is(err, repo.ErrOrderNotFound):
+		return models.Order{}, ErrOrderNotFound
+	case errors.Is(err, repo.ErrInvalidOrderStatus):
+		return models.Order{}, ErrInvalidOrderStatus
+	case errors.Is(err, repo.ErrInvalidStatusTransition):
+		return models.Order{}, ErrInvalidStatusTransition
+	default:
+		return models.Order{}, err
+	}
+}
+
 func (s *orderService) GetMyOrder(
 	ctx context.Context,
 	userID string,
@@ -91,7 +124,6 @@ func (s *orderService) GetMyOrder(
 		return models.Order{}, err
 	}
 
-	// Customer hanya boleh melihat order miliknya sendiri.
 	if order.UserID != userID {
 		return models.Order{}, ErrOrderNotFound
 	}

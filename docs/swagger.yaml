@@ -108,9 +108,13 @@ definitions:
   models.OrderStatus:
     enum:
     - PENDING
+    - COMPLETED
+    - CANCELLED
     type: string
     x-enum-varnames:
     - OrderStatusPending
+    - OrderStatusCompleted
+    - OrderStatusCancelled
   models.Product:
     properties:
       category_id:
@@ -158,6 +162,18 @@ definitions:
     x-enum-varnames:
     - RoleAdmin
     - RoleCustomer
+  models.UpdateOrderStatusRequest:
+    properties:
+      status:
+        allOf:
+        - $ref: '#/definitions/models.OrderStatus'
+        enum:
+        - PENDING
+        - COMPLETED
+        - CANCELLED
+    required:
+    - status
+    type: object
   models.UpdateProductRequest:
     properties:
       category_id:
@@ -241,6 +257,66 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all orders
+      tags:
+      - Admin Orders
+  /admin/orders/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Admin-only. PENDING orders can become COMPLETED or CANCELLED. Cancelling
+        restores stock atomically.
+      parameters:
+      - description: Order UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Order status payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order data is returned inside the data field
+          schema:
+            $ref: '#/definitions/models.Order'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update order status
       tags:
       - Admin Orders
   /auth/login:

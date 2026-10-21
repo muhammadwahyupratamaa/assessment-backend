@@ -25,5 +25,10 @@ func registerOrderRoutes(
 	)
 	{
 		admin.GET("/orders", dependencies.OrderHandler.ListAllOrders)
+
+		admin.PATCH(
+			"/orders/:id/status",
+			dependencies.OrderHandler.UpdateStatus,
+		)
 	}
 }

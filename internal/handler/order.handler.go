@@ -106,6 +106,81 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 	})
 }
 
+// UpdateStatus godoc
+//
+//	@Summary		Update order status
+//	@Description	Admin-only. PENDING orders can become COMPLETED or CANCELLED. Cancelling restores stock atomically.
+//	@Tags			Admin Orders
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id		path		string							true	"Order UUID"
+//	@Param			request	body		models.UpdateOrderStatusRequest	true	"Order status payload"
+//	@Success		200		{object}	models.Order					"Order data is returned inside the data field"
+//	@Failure		400		{object}	map[string]interface{}
+//	@Failure		401		{object}	map[string]interface{}
+//	@Failure		403		{object}	map[string]interface{}
+//	@Failure		404		{object}	map[string]interface{}
+//	@Failure		409		{object}	map[string]interface{}
+//	@Failure		500		{object}	map[string]interface{}
+//	@Router			/admin/orders/{id}/status [patch]
+func (h *OrderHandler) UpdateStatus(c *gin.Context) {
+	orderID := c.Param("id")
+	if !isUUID(orderID) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "invalid order id",
+		})
+		return
+	}
+
+	var request models.UpdateOrderStatusRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "invalid request body",
+		})
+		return
+	}
+
+	order, err := h.orderService.UpdateStatus(
+		c.Request.Context(),
+		orderID,
+		request,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrOrderNotFound):
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"message": "order not found",
+			})
+		case errors.Is(err, services.ErrInvalidOrderStatus):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"message": "invalid order status",
+			})
+		case errors.Is(err, services.ErrInvalidStatusTransition):
+			c.JSON(http.StatusConflict, gin.H{
+				"success": false,
+				"message": "order status cannot be changed",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "failed to update order status",
+			})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    order,
+	})
+}
+
 // ListMyOrders godoc
 //
 //	@Summary	Get current user's orders
