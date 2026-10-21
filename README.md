@@ -26,7 +26,9 @@ The API supports customer registration and login, JWT authentication, role-based
 - Transactional checkout
 - Atomic stock deduction with row locking
 - Order history for customers
-- Admin order listing
+- Admin order listing and status management
+- Order lifecycle: `PENDING`, `COMPLETED`, and `CANCELLED`
+- Automatic stock restoration for cancelled orders
 - Idempotency key support for safe checkout retries
 - Swagger API documentation
 - Automatic database migrations on application startup
@@ -104,6 +106,9 @@ Notes:
 - Each order can only contain one row per product.
 - Duplicate product items in a checkout request are aggregated before processing.
 - `(user_id, idempotency_key)` is unique to prevent duplicate checkout processing.
+- New orders are created with `PENDING` status.
+- An admin can change a `PENDING` order to `COMPLETED` or `CANCELLED`.
+- `COMPLETED` and `CANCELLED` are final statuses; cancelling an order restores its product stock atomically.
 
 ## Prerequisites
 
@@ -193,6 +198,7 @@ To regenerate Swagger documentation after changing annotations:
 | GET | `/api/v1/orders` | Customer | Get own order history |
 | GET | `/api/v1/orders/:id` | Customer | Get own order detail |
 | GET | `/api/v1/admin/orders` | Admin | Get all orders |
+| PATCH | `/api/v1/admin/orders/:id/status` | Admin | Update a pending order to `COMPLETED` or `CANCELLED` |
 
 ## Authentication
 
@@ -231,8 +237,15 @@ Checkout is handled in a single PostgreSQL transaction.
 2. Product rows are locked using `FOR UPDATE`.
 3. Product stock is validated.
 4. Product stock is reduced atomically.
-5. Order and order items are created.
+5. An order is created with `PENDING` status, along with its order items.
 6. Any failure causes the complete transaction to roll back.
+
+An admin can update a `PENDING` order to:
+
+- `COMPLETED`: the order is finalized and stock remains deducted.
+- `CANCELLED`: stock is restored in the same database transaction.
+
+Both `COMPLETED` and `CANCELLED` are final statuses and cannot be changed again.
 
 An optional `Idempotency-Key` header can be sent when checking out. Repeating the same request with the same key returns the existing order and does not reduce stock again.
 
