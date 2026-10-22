@@ -112,7 +112,7 @@ Notes:
 
 ## Prerequisites
 
-- Go 1.19+
+- Go 1.21+
 - Docker and Docker Compose
 - PostgreSQL is provided through Docker Compose
 
