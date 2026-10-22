@@ -387,6 +387,11 @@ func (r *orderRepo) UpdateStatus(
 	}
 
 	if status == models.OrderStatusCancelled {
+		type stockAdjustment struct {
+			ProductID string
+			Quantity  int
+		}
+
 		rows, err := tx.Query(
 			ctx,
 			`SELECT product_id, quantity
@@ -397,31 +402,42 @@ func (r *orderRepo) UpdateStatus(
 		if err != nil {
 			return models.Order{}, err
 		}
-		defer rows.Close()
+
+		adjustments := make([]stockAdjustment, 0)
 
 		for rows.Next() {
-			var productID string
-			var quantity int
+			var adjustment stockAdjustment
 
-			if err := rows.Scan(&productID, &quantity); err != nil {
+			if err := rows.Scan(
+				&adjustment.ProductID,
+				&adjustment.Quantity,
+			); err != nil {
+				rows.Close()
+
 				return models.Order{}, err
 			}
 
+			adjustments = append(adjustments, adjustment)
+		}
+
+		rows.Close()
+
+		if err := rows.Err(); err != nil {
+			return models.Order{}, err
+		}
+
+		for _, adjustment := range adjustments {
 			_, err := tx.Exec(
 				ctx,
 				`UPDATE products
 				SET stock = stock + $1, updated_at = now()
 				WHERE id = $2`,
-				quantity,
-				productID,
+				adjustment.Quantity,
+				adjustment.ProductID,
 			)
 			if err != nil {
 				return models.Order{}, err
 			}
-		}
-
-		if err := rows.Err(); err != nil {
-			return models.Order{}, err
 		}
 	}
 
